@@ -2,11 +2,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="referrer" content="no-referrer"><meta name="theme-color" content="#0b0b1a">
 <title>Glass Swap · No KYC</title>
+<meta name="description" content="Private crypto swap via Trocador AnonPay, locked to no-KYC (A-rated) exchanges. Receive XMR, BTC, LTC or USDT to your own wallet.">
+<meta property="og:title" content="Glass Swap · No KYC"><meta property="og:description" content="Private no-KYC crypto swaps to your own wallet, powered by Trocador."><meta property="og:type" content="website"><meta property="og:url" content="https://demongroker.github.io/glass-swap/"><meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23070914%22/%3E%3Ctext x=%2250%22 y=%2270%22 font-size=%2260%22 text-anchor=%22middle%22 fill=%22%2338e1c6%22%3E%E2%87%84%3C/text%3E%3C/svg%3E">
 <style>
 :root{--t:#f3f4ff;--m:rgba(235,238,255,.62);--g:rgba(255,255,255,.08);--b:rgba(255,255,255,.16);--a:#8b7bff;--a2:#38e1c6}
 *{box-sizing:border-box;margin:0}
 html,body{min-height:100%;background:#07071a;color:var(--t);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
-.bg{position:fixed;inset:0;overflow:hidden;z-index:0}
+.bg{position:fixed;inset:0;overflow:hidden;z-index:0;contain:strict;pointer-events:none}
 .bg i{position:absolute;border-radius:50%;filter:blur(70px);opacity:.55;animation:f 18s ease-in-out infinite alternate}
 .bg i:nth-child(1){width:60vmax;height:60vmax;background:#5b3cff;left:-20vmax;top:-20vmax}
 .bg i:nth-child(2){width:50vmax;height:50vmax;background:#00c2a8;right:-18vmax;top:20vh;animation-duration:22s}
@@ -22,7 +25,7 @@ h1 span{background:linear-gradient(90deg,#fff,#b9b0ff 60%,var(--a2));-webkit-bac
 .sub{color:var(--m);font-size:13px;margin-bottom:14px}
 label{display:block;font-size:12px;color:var(--m);margin:12px 0 6px;font-weight:500}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
-.chip{flex:1;min-width:64px;padding:10px 0;border-radius:14px;border:1px solid var(--b);background:var(--g);color:var(--t);font-weight:600;font-size:14px;font-family:inherit;cursor:pointer;transition:.2s}
+.chip{flex:1;min-width:64px;min-height:44px;padding:10px 0;border-radius:14px;border:1px solid var(--b);background:var(--g);color:var(--t);font-weight:600;font-size:14px;font-family:inherit;cursor:pointer;transition:.2s}
 .chip.on{background:linear-gradient(135deg,rgba(139,123,255,.55),rgba(56,225,198,.35));border-color:rgba(255,255,255,.4)}
 input{width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--b);background:rgba(0,0,0,.25);color:var(--t);font:14px ui-monospace,SFMono-Regular,Menlo,monospace;outline:none}
 input:focus{border-color:var(--a)}
@@ -36,7 +39,9 @@ summary{cursor:pointer;list-style:none;padding:12px 0;font-weight:600;font-size:
 summary::after{content:"+";color:var(--m)}details[open] summary::after{content:"–"}
 details ul{padding:0 0 12px 18px;color:var(--m);font-size:13px}details li{margin:4px 0}
 footer{text-align:center;color:rgba(235,238,255,.42);font-size:11px;margin-top:18px;padding:0 10px}
-footer a{color:inherit}
+footer a{color:inherit;display:inline-block;padding:12px 8px;min-height:44px}
+.err{color:#fca5a5;font-size:12.5px;margin-top:6px;min-height:1em}.ok{color:#8ff5e2}
+input.bad{border-color:#fca5a5!important}
 @media(min-width:900px){main{padding-top:10vh}}</style></head><body>
 <div class="bg"><i></i><i></i><i></i></div>
 <main>
@@ -44,7 +49,7 @@ footer a{color:inherit}
 <section class="glass card">
 <p class="sub">Pay in any coin, receive to your own wallet. Only exchanges rated <b>A (no KYC)</b> by Trocador are used.</p>
 <label>Receive</label>
-<div class="chips" id="coins">
+<div class="chips" id="coins" role="group" aria-label="Coin to receive">
 <button class="chip on" data-t="xmr" data-n="Mainnet">XMR</button>
 <button class="chip" data-t="btc" data-n="Mainnet">BTC</button>
 <button class="chip" data-t="ltc" data-n="Mainnet">LTC</button>
@@ -52,6 +57,7 @@ footer a{color:inherit}
 </div>
 <label for="addr">Your receiving address</label>
 <input id="addr" placeholder="Paste your XMR address" autocomplete="off" spellcheck="false">
+<div class="err" id="msg" aria-live="polite"></div>
 <button class="go" id="go" disabled>Get no-KYC quotes</button>
 <div class="lock">🔒 Filter locked: min_kycrating=A</div>
 <div class="frame" id="fr"><iframe id="w" title="Trocador AnonPay" referrerpolicy="no-referrer"></iframe></div>
@@ -65,7 +71,9 @@ footer a{color:inherit}
 </main>
 <script>
 const c=document.getElementById('coins'),a=document.getElementById('addr'),g=document.getElementById('go'),fr=document.getElementById('fr'),w=document.getElementById('w');let t='xmr',n='Mainnet';
-c.onclick=e=>{const b=e.target.closest('.chip');if(!b)return;c.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));b.classList.add('on');t=b.dataset.t;n=b.dataset.n;a.placeholder='Paste your '+b.textContent+' address';};
-a.oninput=()=>g.disabled=a.value.trim().length<20;
-g.onclick=()=>{const p=new URLSearchParams({ticker_to:t,network_to:n,address:a.value.trim(),min_kycrating:'A',name:'Glass Swap',buttonbgcolor:'7b6cff',textcolor:'ffffff'});w.src='https://trocador.app/anonpay/?'+p;fr.style.display='block';fr.scrollIntoView({behavior:'smooth'});};
+c.onclick=e=>{const b=e.target.closest('.chip');if(!b)return;c.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));b.classList.add('on');t=b.dataset.t;n=b.dataset.n;a.placeholder='Paste your '+b.textContent+(t=='usdt'?' (TRC20)':'')+' address';c.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x==b));val();};
+const RX={xmr:/^[48][1-9A-HJ-NP-Za-km-z]{94}$|^4[1-9A-HJ-NP-Za-km-z]{105}$/,btc:/^(bc1[ac-hj-np-z02-9]{11,71}|[13][1-9A-HJ-NP-Za-km-z]{25,34})$/i,ltc:/^(ltc1[ac-hj-np-z02-9]{11,71}|[LM3][1-9A-HJ-NP-Za-km-z]{26,33})$/i,usdt:/^T[1-9A-HJ-NP-Za-km-z]{33}$/},NM={xmr:'Monero',btc:'Bitcoin',ltc:'Litecoin',usdt:'USDT TRC20 (starts with T)'},m=document.getElementById('msg');
+function val(){const v=a.value.trim(),ok=RX[t].test(v);g.disabled=!ok;a.classList.toggle('bad',!!v&&!ok);a.setAttribute('aria-invalid',!!v&&!ok);m.className=ok?'err ok':'err';m.textContent=!v?'':ok?'✓ Valid '+NM[t]+' address':"This doesn't look like a "+NM[t]+' address';}
+a.oninput=val;
+g.onclick=()=>{if(!RX[t].test(a.value.trim()))return;const p=new URLSearchParams({ticker_to:t,network_to:n,address:a.value.trim(),min_kycrating:'A',name:'Glass Swap',buttonbgcolor:'7b6cff',textcolor:'ffffff'});w.src='https://trocador.app/anonpay/?'+p;fr.style.display='block';fr.scrollIntoView({behavior:'smooth'});};
 </script></body></html>
